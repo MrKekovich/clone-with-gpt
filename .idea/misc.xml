@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="Black">
+    <option name="sdkUUID" value="7c9f5196-9463-41fb-bf5f-8f895e4b29a4" />
+  </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (CloneWithGPT) (2)" project-jdk-type="Python SDK" />
 </project>
