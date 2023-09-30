@@ -4,7 +4,7 @@ from typing import Union, Optional, List
 import torch
 from tokenizers import ByteLevelBPETokenizer, Encoding, InputSequence, EncodeInput
 
-from utils.exceptions import InvalidDatasetPathError, NoFilesFoundError, InvalidSaveDirectoryError
+from utils.exceptions import InvalidDatasetPathError, NoFilesFoundError
 
 
 class GPTTokenizer:
@@ -20,7 +20,7 @@ class GPTTokenizer:
     """
 
     def __init__(self, vocab_path: Path = None):
-        self.vocab_path = vocab_path
+        self.vocab_path: Path | None = vocab_path
 
     @property
     def vocab_path(self):
@@ -40,7 +40,14 @@ class GPTTokenizer:
         if value is None:
             self._tokenizer = ByteLevelBPETokenizer(vocab=None)
         else:
+            self.validate_vocab_path()
             self._tokenizer = ByteLevelBPETokenizer(vocab=str(value))
+
+    def validate_vocab_path(self):
+        if not self.vocab_path.exists():
+            raise FileNotFoundError(f"File does not exist at {self.vocab_path}")
+        if not self.vocab_path.is_file():
+            raise ValueError(f"Tokenizer vocabulary must be a file. {self.vocab_path} was given")
 
     @property
     def tokenizer(self):
@@ -127,12 +134,15 @@ class GPTTokenizer:
 
         return paths
 
-    def save(self, save_path: Path, pretty: bool = True) -> Path:
+    def save(self, save_path: Path,
+             pretty: bool = True,
+             create_if_not_exist: bool = True) -> Path:
         """
         Save the tokenizer.
         Args:
             save_path: Path to save the tokenizer.
-            pretty: save pretty json.
+            pretty: Save pretty json.
+            create_if_not_exist: Create new folder if it does not exist
 
         Returns:
             Path: The path to the saved tokenizer
@@ -143,9 +153,11 @@ class GPTTokenizer:
         if not isinstance(save_path, Path):
             raise TypeError(f"Save path must be instance of Path. "
                             f"{type(save_path)}: {save_path} was given")
-        save_path.mkdir(parents=True, exist_ok=True)
+        if create_if_not_exist:
+            save_path.mkdir(parents=True, exist_ok=True)
         new_vocab_path = save_path / "vocab.json"
-        self.tokenizer.save(path=str(new_vocab_path))
+        self.tokenizer.save(path=str(new_vocab_path),
+                            pretty=pretty)
         return new_vocab_path
         # return save_path / "vocab.json"
 

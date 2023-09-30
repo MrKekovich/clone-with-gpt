@@ -5,15 +5,15 @@ import torch
 from tokenizers import Encoding
 
 from gpt.tokenizer import GPTTokenizer
-from utils.exceptions import InvalidSaveDirectoryError
 
 
 class TestGPTTokenizer:
 
-    def test_init_valid(self):
-        tokenizer = GPTTokenizer(Path('vocab.json'))
-        assert tokenizer.vocab_path == Path('vocab.json')
-        assert str(tokenizer.vocab_path) == 'vocab.json'
+    def test_init_valid(self, tmp_path):
+        vocab_path = tmp_path / "vocab.json"
+        vocab_path.touch()
+        tokenizer = GPTTokenizer(vocab_path)
+        assert tokenizer.vocab_path == vocab_path
 
     def test_init_invalid(self):
         with pytest.raises(TypeError):
@@ -23,10 +23,26 @@ class TestGPTTokenizer:
         tokenizer = GPTTokenizer()
         assert tokenizer.vocab_path is None
 
-    def test_vocab_path_setter(self):
+    def test_vocab_path_setter_valid(self, tmp_path):
+        new_vocab_path = tmp_path / "new_vocab.json"
+        new_vocab_path.touch()
         tokenizer = GPTTokenizer()
-        tokenizer.vocab_path = Path('new_vocab.json')
-        assert tokenizer.vocab_path == Path('new_vocab.json')
+        tokenizer.vocab_path = new_vocab_path
+
+    def test_vocab_path_setter_invalid(self, tmp_path):
+        tokenizer = GPTTokenizer()
+        not_a_path = "string.txt"
+        new_folder = tmp_path / "vocab_cant_be_a_folder/"
+        file_does_not_exist = tmp_path / "i_do_not_exist.json"
+
+        new_folder.mkdir()
+        with pytest.raises(TypeError):
+            tokenizer.vocab_path = not_a_path
+        with pytest.raises(FileNotFoundError):
+            tokenizer.vocab_path = file_does_not_exist
+        with pytest.raises(ValueError):
+            tokenizer.vocab_path = new_folder
+
 
     def test_encode_valid(self):
         tokenizer = GPTTokenizer()
@@ -50,7 +66,9 @@ class TestGPTTokenizer:
         text_from_dtype_long_tensor = tokenizer.decode(torch.tensor([1, 2, 3],
                                                                     dtype=torch.long))
         assert isinstance(text_from_list, str)
+        assert isinstance(text_from_dtype_short_tensor, str)
         assert isinstance(text_from_tensor, str)
+        assert isinstance(text_from_dtype_long_tensor, str)
 
     def test_decode_invalid(self):
         tokenizer = GPTTokenizer()
@@ -77,12 +95,12 @@ class TestGPTTokenizer:
         tokenizer = GPTTokenizer()
         encodings = tokenizer.encode_batch(['This is a test', 'Second sequence'])
         assert isinstance(encodings, list)
-        assert isinstance(encodings[0], Encoding)
+        assert all(isinstance(encoding, Encoding) for encoding in encodings)
 
     def test_encode_batch_invalid(self):
         tokenizer = GPTTokenizer()
         with pytest.raises(TypeError):
-            tokenizer.encode_batch('invalid')
+            tokenizer.encode_batch('not a list')
 
     def test_len(self):
         tokenizer = GPTTokenizer()
@@ -102,35 +120,41 @@ class TestGPTTokenizer:
         with pytest.raises(TypeError):
             tokenizer(123)
 
-    def test_save(self):
+    def test_save(self, tmp_path):
         tokenizer = GPTTokenizer()
-        save_path = Path('test_data/tokenizer/saves/').resolve()
+        save_path = tmp_path / 'saves/'
         vocab_path = tokenizer.save(save_path)
         assert vocab_path.exists()
 
-    def test_save_invalid(self):
+    def test_save_invalid(self, tmp_path):
+        string_path = str(tmp_path / "string.txt")
+        folder_does_not_exist = tmp_path / "new_folder"
         tokenizer = GPTTokenizer()
         with pytest.raises(TypeError):
-            tokenizer.save('string.txt')
+            tokenizer.save(string_path)
+        with pytest.raises(Exception):
+            tokenizer.save(folder_does_not_exist, create_if_not_exist=False)
 
-    def test_train_on_file(self):
-        dataset_file = Path('dataset.txt')
+    def test_train_on_file(self, tmp_path):
+        dataset_file = tmp_path / 'dataset.txt'
         dataset_file.write_text('test dataset')
 
-        save_path = Path('test_data/tokenizer/saves/')
+        save_path = tmp_path / 'saves/'
         tokenizer = GPTTokenizer()
         tokenizer.train(dataset_path=dataset_file,
                         save_path=save_path)
         assert tokenizer.vocab_path.exists()
         assert tokenizer.vocab_path == save_path / 'vocab.json'
 
-    def test_train_on_directory(self):
-        dataset_folder = Path('test_data/dataset')
+    def test_train_on_directory(self, tmp_path):
+        dataset_folder = tmp_path / "dataset/"
         dataset_file = dataset_folder / 'dataset.txt'
+
         dataset_folder.mkdir(exist_ok=True)
         dataset_file.write_text('test dataset')
 
-        save_path = Path('test_data/tokenizer/saves/')
+        save_path = tmp_path / "saves/"
+        print(f"if this is true it's really bad {save_path.exists()}")
         tokenizer = GPTTokenizer()
         tokenizer.train(dataset_path=dataset_folder,
                         save_path=save_path)
