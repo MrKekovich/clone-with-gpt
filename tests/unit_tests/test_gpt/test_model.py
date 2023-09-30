@@ -3,10 +3,11 @@
 import pytest
 import torch
 
-from modeling.config import GPTConfig
-from modeling.gpt import GPT
+from gpt.config import GPTConfig
+from gpt.model import GPT
 
 
+@pytest.mark.usefixtures("setup_torch")
 class TestGPT:
 
     #  GPT model can be instantiated with a valid configuration object
@@ -19,10 +20,9 @@ class TestGPT:
     #  GPT model can be called with a tensor of valid shape
     def test_forward_pass_with_valid_tensor(self):
         config = GPTConfig(vocab_size=100, max_len=128)
-        with torch.device("cuda" if torch.cuda.is_available() else "cpu"):
-            model = GPT(config)
-            input_tensor = torch.randint(0, 100, (32, 128))
-            output_tensor = model(input_tensor)
+        model = GPT(config)
+        input_tensor = torch.randint(0, 100, (32, 128))
+        output_tensor = model(input_tensor)
         assert output_tensor.shape == (32, 128, 100)
         assert output_tensor.dtype == torch.float32
 
