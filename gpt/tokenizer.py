@@ -75,7 +75,7 @@ class GPTTokenizer:
                              vocab_size=vocab_size,
                              min_frequency=min_frequency,
                              show_progress=show_progress,
-                             special_tokens=special_tokens)
+                             special_tokens=special_tokens or [])
 
         if save_path is not None:
             self.vocab_path = self.save(save_path=save_path,
@@ -143,11 +143,10 @@ class GPTTokenizer:
         if not isinstance(save_path, Path):
             raise TypeError(f"Save path must be instance of Path. "
                             f"{type(save_path)}: {save_path} was given")
-        if not save_path.is_dir():
-            raise InvalidSaveDirectoryError(f"The path should be a directory. {save_path} was given")
         save_path.mkdir(parents=True, exist_ok=True)
-        return self.tokenizer.save(path=str(save_path),
-                                   pretty=pretty)
+        new_vocab_path = save_path / "vocab.json"
+        self.tokenizer.save(path=str(new_vocab_path))
+        return new_vocab_path
         # return save_path / "vocab.json"
 
     def encode(self,

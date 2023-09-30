@@ -7,6 +7,7 @@ from gpt.config import GPTConfig
 from gpt.model import GPT
 
 
+@pytest.mark.usefixtures("setup_torch")
 class TestGPT:
 
     #  GPT model can be instantiated with a valid configuration object

@@ -104,7 +104,7 @@ class TestGPTTokenizer:
 
     def test_save(self):
         tokenizer = GPTTokenizer()
-        save_path = Path('test_data/tokenizer/saves/')
+        save_path = Path('test_data/tokenizer/saves/').resolve()
         vocab_path = tokenizer.save(save_path)
         assert vocab_path.exists()
 
@@ -112,13 +112,27 @@ class TestGPTTokenizer:
         tokenizer = GPTTokenizer()
         with pytest.raises(TypeError):
             tokenizer.save('string.txt')
-        with pytest.raises(InvalidSaveDirectoryError):
-            tokenizer.save(Path('test_data/tokenizer/not_a_dir.txt'))
 
-    def test_train(self):
+    def test_train_on_file(self):
+        dataset_file = Path('dataset.txt')
+        dataset_file.write_text('test dataset')
+
         save_path = Path('test_data/tokenizer/saves/')
         tokenizer = GPTTokenizer()
-        tokenizer.train(dataset_path=Path('dataset'),
+        tokenizer.train(dataset_path=dataset_file,
                         save_path=save_path)
-        assert (save_path / 'vocab.json').exists()
+        assert tokenizer.vocab_path.exists()
+        assert tokenizer.vocab_path == save_path / 'vocab.json'
+
+    def test_train_on_directory(self):
+        dataset_folder = Path('test_data/dataset')
+        dataset_file = dataset_folder / 'dataset.txt'
+        dataset_folder.mkdir(exist_ok=True)
+        dataset_file.write_text('test dataset')
+
+        save_path = Path('test_data/tokenizer/saves/')
+        tokenizer = GPTTokenizer()
+        tokenizer.train(dataset_path=dataset_folder,
+                        save_path=save_path)
+        assert tokenizer.vocab_path.exists()
         assert tokenizer.vocab_path == save_path / 'vocab.json'
